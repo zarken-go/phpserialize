@@ -87,3 +87,19 @@ func TestUnmarshalInt(t *testing.T) {
 	assert.EqualError(t, Unmarshal([]byte(`i:9223372036854775808;`), &v), `strconv.ParseInt: parsing "9223372036854775808": value out of range`)
 	assert.EqualError(t, Unmarshal([]byte(`a:1:{s:1:"v";i:-9223372036854775809;}`), &container), `strconv.ParseInt: parsing "-9223372036854775809": value out of range`)
 }
+
+func TestUnmarshalBool(t *testing.T) {
+	var v bool
+	container := struct {
+		Value bool `php:"v"`
+	}{}
+
+	assert.Nil(t, UnmarshalString(`b:1;`, &v))
+	assert.True(t, v)
+
+	assert.Nil(t, Unmarshal([]byte(`a:1:{s:1:"v";b:1;}`), &container))
+	assert.True(t, container.Value)
+
+	assert.EqualError(t, Unmarshal([]byte(`b:2;`), &v), `phpserialize: Decode(invalid boolean value)`)
+	assert.EqualError(t, Unmarshal([]byte(`a:1:{s:1:"v";b:2;}`), &container), `phpserialize: Decode(invalid boolean value)`)
+}
