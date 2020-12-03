@@ -13,7 +13,7 @@ jobs:
           failfast: true
           race: true
       - codecov/upload:
-          file:
+          file: cover-source.out
 orbs:
   go: circleci/go@1.5.0
   codecov: codecov/codecov@1.1.3
