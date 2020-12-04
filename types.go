@@ -7,6 +7,15 @@ import (
 	"sync"
 )
 
+type (
+	encoderFunc func(*Encoder, reflect.Value) error
+	decoderFunc func(*Decoder, reflect.Value) error
+)
+
+var (
+	typeEncMap sync.Map
+	typeDecMap sync.Map
+)
 var structs = newStructCache()
 
 type structCache struct {
@@ -39,7 +48,7 @@ type field struct {
 	name  string
 	index []int
 	// omitEmpty bool
-	// encoder   encoderFunc
+	encoder encoderFunc
 	decoder decoderFunc
 }
 
@@ -77,6 +86,8 @@ func getFields(typ reflect.Type, fallbackTag string) *fields {
 			index: f.Index,
 			// omitEmpty: omitEmpty || tag.HasOption("omitempty"),
 		}
+
+		field.encoder = getEncoder(f.Type)
 		field.decoder = getDecoder(f.Type)
 
 		if field.name == "" {
@@ -115,6 +126,26 @@ func (f *field) DecodeValue(d *Decoder, strct reflect.Value) error {
 	return f.decoder(d, v)
 }
 
+func fieldByIndex(v reflect.Value, index []int) (_ reflect.Value, ok bool) {
+	if len(index) == 1 {
+		return v.Field(index[0]), true
+	}
+
+	for i, idx := range index {
+		if i > 0 {
+			if v.Kind() == reflect.Ptr {
+				if v.IsNil() {
+					return v, false
+				}
+				v = v.Elem()
+			}
+		}
+		v = v.Field(idx)
+	}
+
+	return v, true
+}
+
 func fieldByIndexAlloc(v reflect.Value, index []int) reflect.Value {
 	if len(index) == 1 {
 		return v.Field(index[0])
@@ -136,4 +167,29 @@ func fieldByIndexAlloc(v reflect.Value, index []int) reflect.Value {
 	*/
 
 	panic(`unsupported`)
+}
+
+func (f *field) EncodeValue(e *Encoder, strct reflect.Value) error {
+	v, ok := fieldByIndex(strct, f.index)
+	if !ok {
+		return e.EncodeNil()
+	}
+	return f.encoder(e, v)
+}
+
+func (fs *fields) OmitEmpty(strct reflect.Value) []*field {
+	//if !fs.hasOmitEmpty {
+	return fs.List
+	//}
+
+	/*fields := make([]*field, 0, len(fs.List))
+
+	for _, f := range fs.List {
+		if !f.Omit(strct) {
+			fields = append(fields, f)
+		}
+	}
+
+	return fields
+	*/
 }

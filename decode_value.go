@@ -4,13 +4,6 @@ import (
 	"fmt"
 	"math/bits"
 	"reflect"
-	"sync"
-)
-
-type decoderFunc func(*Decoder, reflect.Value) error
-
-var (
-	typeDecMap sync.Map
 )
 
 func getDecoder(typ reflect.Type) decoderFunc {

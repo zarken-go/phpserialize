@@ -134,6 +134,15 @@ func TestUnmarshalFloat64(t *testing.T) {
 	assert.Nil(t, Unmarshal([]byte(`a:1:{s:1:"v";d:15235.12825;}`), &container))
 	assert.Equal(t, 15235.12825, container.Value)
 
+	assert.Nil(t, UnmarshalString(`d:INF;`, &v))
+	assert.Equal(t, math.Inf(1), v)
+
+	assert.Nil(t, UnmarshalString(`d:-INF;`, &v))
+	assert.Equal(t, math.Inf(-1), v)
+
+	assert.Nil(t, UnmarshalString(`d:NAN;`, &v))
+	assert.True(t, math.IsNaN(v))
+
 	assert.EqualError(t, Unmarshal([]byte(`d:3.402823466e+325;`), &v), `strconv.ParseFloat: parsing "3.402823466e+325": value out of range`)
 	assert.EqualError(t, Unmarshal([]byte(`a:1:{s:1:"v";d:3.402823466e+325;}`), &container), `strconv.ParseFloat: parsing "3.402823466e+325": value out of range`)
 }
