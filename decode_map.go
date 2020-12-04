@@ -3,14 +3,8 @@ package phpserialize
 import "reflect"
 
 func decodeMapValue(d *Decoder, v reflect.Value) error {
-	if err := d.skipExpected('a', ':'); err != nil {
-		return err
-	}
-	n, err := d.readUntilLen()
+	n, err := d.decodeArrayLen()
 	if err != nil {
-		return err
-	}
-	if err := d.skipExpected('{'); err != nil {
 		return err
 	}
 

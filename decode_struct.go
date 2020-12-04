@@ -3,15 +3,8 @@ package phpserialize
 import "reflect"
 
 func decodeStructValue(d *Decoder, v reflect.Value) error {
-	if err := d.skipExpected('a', ':'); err != nil {
-		return err
-	}
-	arrayLen, err := d.readUntilLen()
+	arrayLen, err := d.decodeArrayLen()
 	if err != nil {
-		return err
-	}
-
-	if err := d.skipExpected('{'); err != nil {
 		return err
 	}
 

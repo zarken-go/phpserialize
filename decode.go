@@ -376,3 +376,17 @@ func (d *Decoder) skipExpected(expected ...byte) error {
 	}
 	return nil
 }
+
+func (d *Decoder) decodeArrayLen() (int, error) {
+	if err := d.skipExpected('a', ':'); err != nil {
+		return 0, err
+	}
+	n, err := d.readUntilLen()
+	if err != nil {
+		return 0, err
+	}
+	if err := d.skipExpected('{'); err != nil {
+		return 0, err
+	}
+	return n, nil
+}

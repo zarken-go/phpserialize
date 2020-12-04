@@ -147,6 +147,25 @@ func TestUnmarshalFloat64(t *testing.T) {
 	assert.EqualError(t, Unmarshal([]byte(`a:1:{s:1:"v";d:3.402823466e+325;}`), &container), `strconv.ParseFloat: parsing "3.402823466e+325": value out of range`)
 }
 
+func TestUnmarshalSlice(t *testing.T) {
+	var i []int
+	assert.Nil(t, UnmarshalString(`a:3:{i:0;i:1;i:1;i:3;i:2;i:5;}`, &i))
+
+	// TODO: special case
+	// var s []string
+	// assert.Nil(t, UnmarshalString(`a:3:{i:0;s:3:"one";i:1;s:5:"three";i:2;s:4:"five";}`, &s))
+}
+
+func TestUnmarshalSliceOfMaps(t *testing.T) {
+	var m []map[string]string
+	assert.Nil(t, UnmarshalString(`a:2:{i:0;a:2:{s:2:"id";s:1:"1";s:5:"value";s:3:"One";}i:1;a:2:{s:2:"id";s:1:"2";s:5:"value";s:3:"Two";}}`, &m))
+	assert.Len(t, m, 2)
+	assert.Equal(t, `1`, m[0][`id`])
+	assert.Equal(t, `One`, m[0][`value`])
+	assert.Equal(t, `2`, m[1][`id`])
+	assert.Equal(t, `Two`, m[1][`value`])
+}
+
 func TestDecoder_DecodeFloat(t *testing.T) {
 	d := NewDecoder(strings.NewReader(`b:1;`))
 	v, err := d.DecodeFloat(64)
