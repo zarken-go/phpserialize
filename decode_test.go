@@ -3,7 +3,9 @@ package phpserialize
 import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	"io"
 	"math"
+	"strings"
 	"testing"
 )
 
@@ -102,4 +104,48 @@ func TestUnmarshalBool(t *testing.T) {
 
 	assert.EqualError(t, Unmarshal([]byte(`b:2;`), &v), `phpserialize: Decode(invalid boolean value)`)
 	assert.EqualError(t, Unmarshal([]byte(`a:1:{s:1:"v";b:2;}`), &container), `phpserialize: Decode(invalid boolean value)`)
+}
+
+func TestUnmarshalFloat32(t *testing.T) {
+	var v float32
+	container := struct {
+		Value float32 `php:"v"`
+	}{}
+
+	assert.Nil(t, UnmarshalString(`d:15.285325;`, &v))
+	assert.Equal(t, float32(15.285325), v)
+
+	assert.Nil(t, Unmarshal([]byte(`a:1:{s:1:"v";d:15235.12825;}`), &container))
+	assert.Equal(t, float32(15235.12825), container.Value)
+
+	assert.EqualError(t, Unmarshal([]byte(`d:3.402823466e+50;`), &v), `strconv.ParseFloat: parsing "3.402823466e+50": value out of range`)
+	assert.EqualError(t, Unmarshal([]byte(`a:1:{s:1:"v";d:3.402823466e+50;}`), &container), `strconv.ParseFloat: parsing "3.402823466e+50": value out of range`)
+}
+
+func TestUnmarshalFloat64(t *testing.T) {
+	var v float64
+	container := struct {
+		Value float64 `php:"v"`
+	}{}
+
+	assert.Nil(t, UnmarshalString(`d:15.285325;`, &v))
+	assert.Equal(t, 15.285325, v)
+
+	assert.Nil(t, Unmarshal([]byte(`a:1:{s:1:"v";d:15235.12825;}`), &container))
+	assert.Equal(t, 15235.12825, container.Value)
+
+	assert.EqualError(t, Unmarshal([]byte(`d:3.402823466e+325;`), &v), `strconv.ParseFloat: parsing "3.402823466e+325": value out of range`)
+	assert.EqualError(t, Unmarshal([]byte(`a:1:{s:1:"v";d:3.402823466e+325;}`), &container), `strconv.ParseFloat: parsing "3.402823466e+325": value out of range`)
+}
+
+func TestDecoder_DecodeFloat(t *testing.T) {
+	d := NewDecoder(strings.NewReader(`b:1;`))
+	v, err := d.DecodeFloat(64)
+	assert.Zero(t, v)
+	assert.EqualError(t, err, `phpserialize: Decode(expected byte 'd' found 'b')`)
+
+	d = NewDecoder(strings.NewReader(`d:`))
+	v, err = d.DecodeFloat(64)
+	assert.Zero(t, v)
+	assert.Equal(t, io.EOF, err)
 }

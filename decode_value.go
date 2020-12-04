@@ -98,19 +98,19 @@ var valueDecoders []decoderFunc
 //nolint:gochecknoinits
 func init() {
 	valueDecoders = []decoderFunc{
-		reflect.Bool:   decodeBoolValue,
-		reflect.Int:    decodeIntValue,
-		reflect.Int8:   decodeInt8Value,
-		reflect.Int16:  decodeInt16Value,
-		reflect.Int32:  decodeInt32Value,
-		reflect.Int64:  decodeInt64Value,
-		reflect.Uint:   decodeUintValue,
-		reflect.Uint8:  decodeUint8Value,
-		reflect.Uint16: decodeUint16Value,
-		reflect.Uint32: decodeUint32Value,
-		reflect.Uint64: decodeUint64Value,
-		//reflect.Float32:       decodeFloat32Value,
-		//reflect.Float64:       decodeFloat64Value,
+		reflect.Bool:       decodeBoolValue,
+		reflect.Int:        decodeIntValue,
+		reflect.Int8:       decodeInt8Value,
+		reflect.Int16:      decodeInt16Value,
+		reflect.Int32:      decodeInt32Value,
+		reflect.Int64:      decodeInt64Value,
+		reflect.Uint:       decodeUintValue,
+		reflect.Uint8:      decodeUint8Value,
+		reflect.Uint16:     decodeUint16Value,
+		reflect.Uint32:     decodeUint32Value,
+		reflect.Uint64:     decodeUint64Value,
+		reflect.Float32:    decodeFloat32Value,
+		reflect.Float64:    decodeFloat64Value,
 		reflect.Complex64:  decodeUnsupportedValue,
 		reflect.Complex128: decodeUnsupportedValue,
 		// reflect.Array:         decodeArrayValue,
@@ -175,6 +175,26 @@ func decodeSignedIntValue(d *Decoder, v reflect.Value, bitSize int) error {
 		return err
 	}
 	v.SetInt(n)
+	return nil
+}
+
+func decodeFloat32Value(d *Decoder, v reflect.Value) error {
+	n, err := d.DecodeFloat(32)
+	if err != nil {
+		// TODO: should this wrapErr so the prefix phpserialize is maintained?
+		return err
+	}
+	v.SetFloat(n)
+	return nil
+}
+
+func decodeFloat64Value(d *Decoder, v reflect.Value) error {
+	n, err := d.DecodeFloat64()
+	if err != nil {
+		// TODO: should this wrapErr so the prefix phpserialize is maintained?
+		return err
+	}
+	v.SetFloat(n)
 	return nil
 }
 

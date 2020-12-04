@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"io"
 	"math/bits"
 	"reflect"
@@ -128,11 +127,10 @@ func (d *Decoder) Decode(v interface{}) error {
 			return err
 		}
 	case *float32:
-		return ErrUnsupported
-		/*if v != nil {
+		if v != nil {
 			*v, err = d.DecodeFloat32()
 			return err
-		}*/
+		}
 	case *float64:
 		if v != nil {
 			*v, err = d.DecodeFloat64()
@@ -289,6 +287,18 @@ d:-INF;
 d:NAN;
 */
 func (d *Decoder) DecodeFloat64() (float64, error) {
+	return d.DecodeFloat(64)
+}
+
+func (d *Decoder) DecodeFloat32() (float32, error) {
+	v, err := d.DecodeFloat(32)
+	if err != nil {
+		return 0, err
+	}
+	return float32(v), nil
+}
+
+func (d *Decoder) DecodeFloat(bitSize int) (float64, error) {
 	if err := d.skipExpected('d', ':'); err != nil {
 		return 0, err
 	}
@@ -297,9 +307,8 @@ func (d *Decoder) DecodeFloat64() (float64, error) {
 	if err != nil {
 		return 0, err
 	}
-	logrus.Infof(`Acc: %s`, acc)
 
-	return strconv.ParseFloat(string(acc), 10)
+	return strconv.ParseFloat(string(acc), bitSize)
 }
 
 func (d *Decoder) DecodeString() (string, error) {
@@ -362,7 +371,7 @@ func (d *Decoder) skipExpected(expected ...byte) error {
 			return err
 		}
 		if c != e {
-			return fmt.Errorf(`phpserialize: expected byte '%c' found '%c'`, expected, c)
+			return fmt.Errorf(`phpserialize: Decode(expected byte '%c' found '%c')`, e, c)
 		}
 	}
 	return nil
