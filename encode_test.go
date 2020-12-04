@@ -30,6 +30,21 @@ func (Suite *EncodeSuite) TestMarshalSignedInts() {
 	Suite.assertMarshal(container{v: 123}, `a:1:{s:1:"v";i:123;}`)
 }
 
+func (Suite *EncodeSuite) TestMarshalNils() {
+	var str *string
+	type container2 struct {
+		str *string `php:"s"`
+	}
+	container := struct {
+		str *string `php:"s"`
+	}{}
+
+	Suite.assertMarshal(str, `N;`)
+	Suite.assertMarshal(nil, `N;`)
+	Suite.assertMarshal(container, `a:1:{s:1:"s";N;}`)
+	Suite.assertMarshal(&container2{}, `a:1:{s:1:"s";N;}`)
+}
+
 func (Suite *EncodeSuite) TestMarshalFloats() {
 	Suite.assertMarshal(15.35, `d:15.35;`)
 	Suite.assertMarshal(-19275.1872, `d:-19275.1872;`)

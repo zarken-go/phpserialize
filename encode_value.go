@@ -55,7 +55,7 @@ func _getEncoder(typ reflect.Type) encoderFunc {
 
 	if kind == reflect.Ptr {
 		if _, ok := typeEncMap.Load(typ.Elem()); ok {
-			return encodeUnsupportedValue //ptrEncoderFunc(typ)
+			return ptrEncoderFunc(typ)
 		}
 	}
 
@@ -93,38 +93,47 @@ func _getEncoder(typ reflect.Type) encoderFunc {
 		return encodeErrorValue
 	}*/
 
-	/*switch kind {
+	switch kind {
 	case reflect.Ptr:
 		return ptrEncoderFunc(typ)
-	case reflect.Slice:
-		elem := typ.Elem()
-		if elem.Kind() == reflect.Uint8 {
-			return encodeByteSliceValue
-		}
-		if elem == stringType {
-			return encodeStringSliceValue
-		}
-	case reflect.Array:
-		if typ.Elem().Kind() == reflect.Uint8 {
-			return encodeByteArrayValue
-		}
-	case reflect.Map:
-		if typ.Key() == stringType {
-			switch typ.Elem() {
-			case stringType:
-				return encodeMapStringStringValue
-			case interfaceType:
-				return encodeMapStringInterfaceValue
+		/*case reflect.Slice:
+			elem := typ.Elem()
+			if elem.Kind() == reflect.Uint8 {
+				return encodeByteSliceValue
 			}
-		}
+			if elem == stringType {
+				return encodeStringSliceValue
+			}
+		case reflect.Array:
+			if typ.Elem().Kind() == reflect.Uint8 {
+				return encodeByteArrayValue
+			}
+		case reflect.Map:
+			if typ.Key() == stringType {
+				switch typ.Elem() {
+				case stringType:
+					return encodeMapStringStringValue
+				case interfaceType:
+					return encodeMapStringInterfaceValue
+				}
+			}*/
 	}
-	*/
 
 	return valueEncoders[kind]
 }
 
 func encodeUnsupportedValue(e *Encoder, v reflect.Value) error {
 	return fmt.Errorf("phpserialize: Encode(unsupported %s)", v.Type())
+}
+
+func ptrEncoderFunc(typ reflect.Type) encoderFunc {
+	encoder := getEncoder(typ.Elem())
+	return func(e *Encoder, v reflect.Value) error {
+		if v.IsNil() {
+			return e.EncodeNil()
+		}
+		return encoder(e, v.Elem())
+	}
 }
 
 func encodeBoolValue(e *Encoder, v reflect.Value) error {
