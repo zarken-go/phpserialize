@@ -166,6 +166,16 @@ func TestUnmarshalSliceOfMaps(t *testing.T) {
 	assert.Equal(t, `Two`, m[1][`value`])
 }
 
+func TestUnmarshalMapStringPtr(t *testing.T) {
+	var m map[string]*string
+	assert.Nil(t, UnmarshalString(`a:2:{s:5:"first";s:1:"J";s:4:"last";N;}`, &m))
+	assert.Len(t, m, 2)
+	if assert.NotNil(t, m[`first`]) {
+		assert.Equal(t, `J`, *m[`first`])
+	}
+	assert.Nil(t, m[`last`])
+}
+
 func TestDecoder_DecodeFloat(t *testing.T) {
 	d := NewDecoder(strings.NewReader(`b:1;`))
 	v, err := d.DecodeFloat(64)

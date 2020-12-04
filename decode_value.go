@@ -20,8 +20,7 @@ func _getDecoder(typ reflect.Type) decoderFunc {
 
 	if kind == reflect.Ptr {
 		if _, ok := typeDecMap.Load(typ.Elem()); ok {
-			return decodeUnsupportedValue
-			// return ptrDecoderFunc(typ)
+			return ptrDecoderFunc(typ)
 		}
 	}
 
@@ -84,6 +83,22 @@ func _getDecoder(typ reflect.Type) decoderFunc {
 	*/
 
 	return valueDecoders[kind]
+}
+
+func ptrDecoderFunc(typ reflect.Type) decoderFunc {
+	decoder := getDecoder(typ.Elem())
+	return func(d *Decoder, v reflect.Value) error {
+		if d.hasNilCode() {
+			if !v.IsNil() {
+				v.Set(reflect.Zero(v.Type()))
+			}
+			return d.DecodeNil()
+		}
+		if v.IsNil() {
+			v.Set(reflect.New(v.Type().Elem()))
+		}
+		return decoder(d, v.Elem())
+	}
 }
 
 var valueDecoders []decoderFunc

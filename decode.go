@@ -180,6 +180,23 @@ func (d *Decoder) Decode(v interface{}) error {
 	return d.DecodeValue(vv)
 }
 
+func (d *Decoder) PeekCode() (byte, error) {
+	c, err := d.s.ReadByte()
+	if err != nil {
+		return 0, err
+	}
+	return c, d.s.UnreadByte()
+}
+
+func (d *Decoder) hasNilCode() bool {
+	code, err := d.PeekCode()
+	return err == nil && code == 'N'
+}
+
+func (d *Decoder) DecodeNil() error {
+	return d.skipExpected('N', ';')
+}
+
 func (d *Decoder) DecodeValue(v reflect.Value) error {
 	decode := getDecoder(v.Type())
 	if decode == nil {
