@@ -28,7 +28,7 @@ func init() {
 		reflect.Array:         encodeUnsupportedValue, //encodeArrayValue,
 		reflect.Chan:          encodeUnsupportedValue,
 		reflect.Func:          encodeUnsupportedValue,
-		reflect.Interface:     encodeUnsupportedValue, //encodeInterfaceValue,
+		reflect.Interface:     encodeInterfaceValue,
 		reflect.Map:           encodeMapValue,
 		reflect.Ptr:           encodeUnsupportedValue,
 		reflect.Slice:         encodeSliceValue,
@@ -43,9 +43,6 @@ func getEncoder(typ reflect.Type) encoderFunc {
 		return v.(encoderFunc)
 	}
 	fn := _getEncoder(typ)
-	if fn == nil {
-		return encodeUnsupportedValue
-	}
 	typeEncMap.Store(typ, fn)
 	return fn
 }
@@ -138,6 +135,13 @@ func ptrEncoderFunc(typ reflect.Type) encoderFunc {
 
 func encodeBoolValue(e *Encoder, v reflect.Value) error {
 	return e.EncodeBool(v.Bool())
+}
+
+func encodeInterfaceValue(e *Encoder, v reflect.Value) error {
+	if v.IsNil() {
+		return e.EncodeNil()
+	}
+	return e.EncodeValue(v.Elem())
 }
 
 func encodeIntValue(e *Encoder, v reflect.Value) error {
