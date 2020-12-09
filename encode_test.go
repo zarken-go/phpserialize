@@ -1,6 +1,8 @@
 package phpserialize
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -12,9 +14,24 @@ type EncodeSuite struct {
 	suite.Suite
 }
 
+type maxLengthWriter struct {
+	capacity int
+	buffer   *bytes.Buffer
+}
+
+var errCapacityExceeded = errors.New(`writer capacity exceeded`)
+
+func (w *maxLengthWriter) Write(b []byte) (int, error) {
+	if w.buffer.Len()+len(b) > w.capacity {
+		return 0, errCapacityExceeded
+	}
+	return w.buffer.Write(b)
+}
+
 func (Suite *EncodeSuite) TestMarshalString() {
 	Suite.assertMarshal(`Hello`, `s:5:"Hello";`)
 	Suite.assertMarshalContained(`World`, `s:5:"World";`)
+	Suite.assertMarshal([]byte(`Hello`), `s:5:"Hello";`)
 }
 
 func (Suite *EncodeSuite) TestMarshalSignedInts() {
@@ -122,6 +139,102 @@ func (Suite *EncodeSuite) TestMarshalStringKeyMap() {
 			"expected: %s OR %s\n"+
 			"actual  : %s", expectedA, expectedB, string(b)))
 	}
+}
+
+func (Suite *EncodeSuite) TestUnsupported() {
+	b, err := Marshal(complex64(123))
+	Suite.Nil(b)
+	Suite.EqualError(err, `phpserialize: Encode(unsupported complex64)`)
+}
+
+func (Suite *EncodeSuite) TestErrorPropagation() {
+	// int64
+	Suite.assertCapacityErr(0, 1234, ``)
+	Suite.assertCapacityErr(2, 1234, `i:`)
+
+	// uint64
+	Suite.assertCapacityErr(0, uint64(9876), ``)
+	Suite.assertCapacityErr(2, uint64(9876), `i:`)
+
+	// booleans
+	Suite.assertCapacityErr(0, true, ``)
+	Suite.assertCapacityErr(2, true, `b:`)
+
+	// floats
+	Suite.assertCapacityErr(0, 14.53, ``)
+	Suite.assertCapacityErr(2, 14.53, `d:`)
+	Suite.assertCapacityErr(2, math.Inf(-1), `d:`)
+	Suite.assertCapacityErr(2, math.Inf(1), `d:`)
+	Suite.assertCapacityErr(2, math.NaN(), `d:`)
+	Suite.assertCapacityErr(6, math.Inf(-1), `d:-INF`)
+	Suite.assertCapacityErr(5, math.Inf(1), `d:INF`)
+	Suite.assertCapacityErr(5, math.NaN(), `d:NAN`)
+
+	// byte slice
+	b := []byte(`Hello`)
+	Suite.assertCapacityErr(0, b, ``)
+	Suite.assertCapacityErr(2, b, `s:`)
+	Suite.assertCapacityErr(4, b, `s:5`)
+	Suite.assertCapacityErr(6, b, `s:5:"`)
+	Suite.assertCapacityErr(10, b, `s:5:"Hello`)
+
+	// maps
+	m := make(map[int]string)
+	m[2] = `Hello`
+
+	Suite.assertCapacityErr(0, m, ``)
+	Suite.assertCapacityErr(2, m, `a:`)
+	Suite.assertCapacityErr(3, m, `a:1`)
+	Suite.assertCapacityErr(5, m, `a:1:{`)
+	Suite.assertCapacityErr(9, m, `a:1:{i:2;`)
+	Suite.assertCapacityErr(21, m, `a:1:{i:2;s:5:"Hello";`)
+
+	var m2 map[int]string
+	Suite.assertCapacityErr(0, m2, ``)
+
+	// slices
+	ints := []int{10, 92}
+	Suite.assertCapacityErr(0, ints, ``)
+	Suite.assertCapacityErr(5, ints, `a:2:{`)
+	Suite.assertCapacityErr(9, ints, `a:2:{i:0;`)
+	Suite.assertCapacityErr(14, ints, `a:2:{i:0;i:10;`)
+	Suite.assertCapacityErr(18, ints, `a:2:{i:0;i:10;i:1;`)
+	Suite.assertCapacityErr(23, ints, `a:2:{i:0;i:10;i:1;i:92;`)
+
+	s := struct {
+		V1 int8   `php:"v1"`
+		V2 string `php:"v2"`
+	}{
+		V1: 14,
+		V2: `World`,
+	}
+
+	Suite.assertCapacityErr(0, s, ``)
+	Suite.assertCapacityErr(5, s, `a:2:{`)
+	Suite.assertCapacityErr(14, s, `a:2:{s:2:"v1";`)
+	Suite.assertCapacityErr(19, s, `a:2:{s:2:"v1";i:14;`)
+}
+
+func (Suite *EncodeSuite) TestNewByteWriter() {
+	w := newByteWriter(&maxLengthWriter{
+		capacity: 1,
+		buffer:   &bytes.Buffer{},
+	})
+	Suite.Nil(w.WriteByte('a'))
+	Suite.Equal(errCapacityExceeded, w.WriteByte(';'))
+}
+
+func (Suite *EncodeSuite) assertCapacityErr(Capacity int, Value interface{}, ExpectedBuffer string) {
+	// These tests use a write with a max length to ensure error propagation
+
+	Buffer := &bytes.Buffer{}
+	Encoder := NewEncoder(&maxLengthWriter{
+		capacity: Capacity,
+		buffer:   Buffer,
+	})
+	err := Encoder.Encode(Value)
+	Suite.Equal(errCapacityExceeded, err)
+	Suite.Equal(ExpectedBuffer, Buffer.String())
 }
 
 func (Suite *EncodeSuite) assertMarshal(v interface{}, expected string) {
