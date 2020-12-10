@@ -28,7 +28,7 @@ func (bw byteWriter) WriteByte(c byte) error {
 	return err
 }
 
-// Marshal returns the MessagePack encoding of v.
+// Marshal returns the PHP Serialized encoding of v.
 func Marshal(v interface{}) ([]byte, error) {
 	//enc := GetEncoder()
 	enc := Encoder{}
