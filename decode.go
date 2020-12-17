@@ -343,11 +343,7 @@ func (d *Decoder) DecodeString() (string, error) {
 	if err := d.skipExpected('s', ':'); err != nil {
 		return ``, err
 	}
-	rawStrLen, err := d.readUntil(':')
-	if err != nil {
-		return ``, err
-	}
-	strLen, err := strconv.Atoi(string(rawStrLen))
+	strLen, err := d.readUntilLen()
 	if err != nil {
 		return ``, err
 	}
