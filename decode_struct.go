@@ -1,6 +1,9 @@
 package phpserialize
 
-import "reflect"
+import (
+	"fmt"
+	"reflect"
+)
 
 func decodeStructValue(d *Decoder, v reflect.Value) error {
 	arrayLen, err := d.decodeArrayLen()
@@ -19,16 +22,12 @@ func decodeStructValue(d *Decoder, v reflect.Value) error {
 			if err := f.DecodeValue(d, v); err != nil {
 				return err
 			}
-			/*} else if d.flags&disallowUnknownFieldsFlag != 0 {
+			} else if d.flags&disallowUnknownFieldsFlag != 0 {
 				return fmt.Errorf("phpserialize: unknown field %q", name)
-			} else if err := d.Skip(); err != nil {
-				return err*/
+			//} else if err := d.Skip(); err != nil {
+			//	return err
 		}
 	}
 
-	if err := d.skipExpected('}'); err != nil {
-		return err
-	}
-
-	return nil
+	return d.skipExpected('}')
 }

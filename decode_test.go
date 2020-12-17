@@ -150,10 +150,11 @@ func TestUnmarshalFloat64(t *testing.T) {
 func TestUnmarshalSlice(t *testing.T) {
 	var i []int
 	assert.Nil(t, UnmarshalString(`a:3:{i:0;i:1;i:1;i:3;i:2;i:5;}`, &i))
+	assert.Equal(t, []int{1, 3, 5}, i)
 
-	// TODO: special case
-	// var s []string
-	// assert.Nil(t, UnmarshalString(`a:3:{i:0;s:3:"one";i:1;s:5:"three";i:2;s:4:"five";}`, &s))
+	var s []string
+	assert.Nil(t, UnmarshalString(`a:3:{i:0;s:3:"one";i:1;s:5:"three";i:2;s:4:"five";}`, &s))
+	assert.Equal(t, []string{`one`, `three`, `five`}, s)
 }
 
 func TestUnmarshalSliceOfMaps(t *testing.T) {

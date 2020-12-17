@@ -1,6 +1,13 @@
 package phpserialize
 
-import "reflect"
+import (
+	"reflect"
+)
+
+var (
+	mapStringStringPtrType = reflect.TypeOf((*map[string]string)(nil))
+	mapStringStringType    = mapStringStringPtrType.Elem()
+)
 
 func decodeMapValue(d *Decoder, v reflect.Value) error {
 	n, err := d.decodeArrayLen()
@@ -48,4 +55,40 @@ func (d *Decoder) decodeTypedMapValue(v reflect.Value, n int) error {
 	}
 
 	return nil
+}
+
+func (d *Decoder) decodeMapStringStringPtr(ptr *map[string]string) error {
+	size, err := d.decodeArrayLen()
+	if err != nil {
+		return err
+	}
+	if size == -1 {
+		*ptr = nil
+		return nil
+	}
+
+	m := *ptr
+	if m == nil {
+		*ptr = make(map[string]string, min(size, maxMapSize))
+		m = *ptr
+	}
+
+	for i := 0; i < size; i++ {
+		mk, err := d.DecodeString()
+		if err != nil {
+			return err
+		}
+		mv, err := d.DecodeString()
+		if err != nil {
+			return err
+		}
+		m[mk] = mv
+	}
+
+	return d.skipExpected('}')
+}
+
+func decodeMapStringStringValue(d *Decoder, v reflect.Value) error {
+	mptr := v.Addr().Convert(mapStringStringPtrType).Interface().(*map[string]string)
+	return d.decodeMapStringStringPtr(mptr)
 }

@@ -5,6 +5,8 @@ import (
 	"reflect"
 )
 
+var sliceStringPtrType = reflect.TypeOf((*[]string)(nil))
+
 const (
 	sliceAllocLimit = 1e4
 )
@@ -47,7 +49,7 @@ func decodeSliceValue(d *Decoder, v reflect.Value) error {
 		}
 	}
 
-	return nil
+	return d.skipExpected('}')
 }
 
 func growSliceValue(v reflect.Value, n int) reflect.Value {
@@ -57,4 +59,56 @@ func growSliceValue(v reflect.Value, n int) reflect.Value {
 	}
 	v = reflect.AppendSlice(v, reflect.MakeSlice(v.Type(), diff, diff))
 	return v
+}
+
+func decodeStringSliceValue(d *Decoder, v reflect.Value) error {
+	ptr := v.Addr().Convert(sliceStringPtrType).Interface().(*[]string)
+	return d.decodeStringSlicePtr(ptr)
+}
+
+func (d *Decoder) decodeStringSlicePtr(ptr *[]string) error {
+	n, err := d.decodeArrayLen()
+	if err != nil {
+		return err
+	}
+	if n == -1 {
+		return nil
+	}
+
+	ss := makeStrings(*ptr, n)
+	for i := 0; i < n; i++ {
+		decodedIndex, err := d.DecodeInt()
+		if err != nil {
+			return err
+		}
+		if decodedIndex != i {
+			return fmt.Errorf(`phpserialize: Decode(expected offset '%d' found '%d')`, i, decodedIndex)
+		}
+		s, err := d.DecodeString()
+		if err != nil {
+			return err
+		}
+		ss = append(ss, s)
+	}
+	*ptr = ss
+
+	return d.skipExpected('}')
+}
+
+func makeStrings(s []string, n int) []string {
+	if n > sliceAllocLimit {
+		n = sliceAllocLimit
+	}
+
+	if s == nil {
+		return make([]string, 0, n)
+	}
+
+	if cap(s) >= n {
+		return s[:0]
+	}
+
+	s = s[:cap(s)]
+	s = append(s, make([]string, n-len(s))...)
+	return s[:0]
 }

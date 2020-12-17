@@ -14,8 +14,19 @@ import (
 )
 
 type Decoder struct {
-	s io.ByteScanner
+	s     io.ByteScanner
+	flags uint32
 }
+
+const (
+	disallowUnknownFieldsFlag uint32 = 1 << iota
+)
+
+const (
+	// bytesAllocLimit = 1e6 // 1mb
+	// sliceAllocLimit = 1e4
+	maxMapSize = 1e6
+)
 
 var (
 	ErrUnsupported = errors.New(`unsupported target type`)
@@ -137,9 +148,9 @@ func (d *Decoder) Decode(v interface{}) error {
 			return err
 		}
 	case *[]string:
-		return ErrUnsupported // d.decodeStringSlicePtr(v)
+		return d.decodeStringSlicePtr(v)
 	case *map[string]string:
-		return ErrUnsupported // d.decodeMapStringStringPtr(v)
+		return d.decodeMapStringStringPtr(v)
 	case *map[string]interface{}:
 		return ErrUnsupported // d.decodeMapStringInterfacePtr(v)
 	case *time.Duration:
@@ -406,4 +417,11 @@ func (d *Decoder) decodeArrayLen() (int, error) {
 		return 0, err
 	}
 	return n, nil
+}
+
+func min(a, b int) int { //nolint:unparam
+	if a <= b {
+		return a
+	}
+	return b
 }

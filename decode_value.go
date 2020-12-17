@@ -6,6 +6,10 @@ import (
 	"reflect"
 )
 
+var (
+	stringType = reflect.TypeOf((*string)(nil)).Elem()
+)
+
 func getDecoder(typ reflect.Type) decoderFunc {
 	if v, ok := typeDecMap.Load(typ); ok {
 		return v.(decoderFunc)
@@ -24,63 +28,61 @@ func _getDecoder(typ reflect.Type) decoderFunc {
 		}
 	}
 
-	/*
-		if typ.Implements(customDecoderType) {
-			return decodeCustomValue
-		}
-		if typ.Implements(unmarshalerType) {
-			return unmarshalValue
-		}
-		if typ.Implements(binaryUnmarshalerType) {
-			return unmarshalBinaryValue
-		}
-		if typ.Implements(textUnmarshalerType) {
-			return unmarshalTextValue
-		}
+	//if typ.Implements(customDecoderType) {
+	//	return decodeCustomValue
+	//}
+	//if typ.Implements(unmarshalerType) {
+	//	return unmarshalValue
+	//}
+	//if typ.Implements(binaryUnmarshalerType) {
+	//	return unmarshalBinaryValue
+	//}
+	//if typ.Implements(textUnmarshalerType) {
+	//	return unmarshalTextValue
+	//}
+	//
+	//// Addressable struct field value.
+	//if kind != reflect.Ptr {
+	//	ptr := reflect.PtrTo(typ)
+	//	if ptr.Implements(customDecoderType) {
+	//		return decodeCustomValueAddr
+	//	}
+	//	if ptr.Implements(unmarshalerType) {
+	//		return unmarshalValueAddr
+	//	}
+	//	if ptr.Implements(binaryUnmarshalerType) {
+	//		return unmarshalBinaryValueAddr
+	//	}
+	//	if ptr.Implements(textUnmarshalerType) {
+	//		return unmarshalTextValueAddr
+	//	}
+	//}
 
-		// Addressable struct field value.
-		if kind != reflect.Ptr {
-			ptr := reflect.PtrTo(typ)
-			if ptr.Implements(customDecoderType) {
-				return decodeCustomValueAddr
-			}
-			if ptr.Implements(unmarshalerType) {
-				return unmarshalValueAddr
-			}
-			if ptr.Implements(binaryUnmarshalerType) {
-				return unmarshalBinaryValueAddr
-			}
-			if ptr.Implements(textUnmarshalerType) {
-				return unmarshalTextValueAddr
+	switch kind {
+	case reflect.Ptr:
+		return ptrDecoderFunc(typ)
+	case reflect.Slice:
+		elem := typ.Elem()
+		//	if elem.Kind() == reflect.Uint8 {
+		//		return decodeBytesValue
+		//	}
+		if elem == stringType {
+			return decodeStringSliceValue
+		}
+	//case reflect.Array:
+	//	if typ.Elem().Kind() == reflect.Uint8 {
+	//		return decodeByteArrayValue
+	//	}
+	case reflect.Map:
+		if typ.Key() == stringType {
+			switch typ.Elem() {
+			case stringType:
+				return decodeMapStringStringValue
+				//case interfaceType:
+				//	return decodeMapStringInterfaceValue
 			}
 		}
-
-		switch kind {
-		case reflect.Ptr:
-			return ptrDecoderFunc(typ)
-		case reflect.Slice:
-			elem := typ.Elem()
-			if elem.Kind() == reflect.Uint8 {
-				return decodeBytesValue
-			}
-			if elem == stringType {
-				return decodeStringSliceValue
-			}
-		case reflect.Array:
-			if typ.Elem().Kind() == reflect.Uint8 {
-				return decodeByteArrayValue
-			}
-		case reflect.Map:
-			if typ.Key() == stringType {
-				switch typ.Elem() {
-				case stringType:
-					return decodeMapStringStringValue
-				case interfaceType:
-					return decodeMapStringInterfaceValue
-				}
-			}
-		}
-	*/
+	}
 
 	return valueDecoders[kind]
 }
